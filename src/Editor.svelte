@@ -1,6 +1,6 @@
 <script>
   import {afterUpdate} from 'svelte'
-  import {saveData, initializeData} from './helpers'
+  import {saveData, initializeData, isNormalNumber, getPercent, parseFloatOrNaN, toFixedIfNeeded} from './helpers'
 
   var [parties, absoluteDue] = initializeData()
 
@@ -54,72 +54,68 @@
     return calcDue(absoluteDue, parties) - paid
   }
 
-  function infoPartyDue(party, parties) {
+  function partyDueSpecified (party, absoluteDue) {
     // absolute value, then it's it
     if (isNormalNumber(party.due)) return parseFloat(party.due)
 
     // percent value: calculate with absoluteDue
     let percent = getPercent(party.due)
     if (absoluteDue && percent) {
-      return toFixedIfNeeded(percent * absoluteDue)
+      return percent * absoluteDue
     }
-
-    // blank: estimate what is left divided equally
-    if (absoluteDue && party.due.trim() === '') {
-      let whatIsDecided = parties.reduce((acc, p) => {
-        if (isNormalNumber(p.due)) {
-          return acc + parseFloat(p.due)
-        }
-
-        let percent = getPercent(p.due)
-        if (percent) {
-          return acc + percent * absoluteDue
-        }
-
-        return acc + 0
-      }, 0)
-      let whatIsLeftToDecide = absoluteDue - whatIsDecided
-      let nblankParties = parties.filter(p => p.due.trim() === '').length
-
-      return toFixedIfNeeded(whatIsLeftToDecide / nblankParties)
-    }
-
-    // otherwise nothing is shown
-    return ''
   }
 
-  function infoPartyBalanceColor(party) {
-    let balance = party.paid - party.due
+  function partyDueEstimated (party, parties, absoluteDue) {
+    // take the absolute quantity, subtract what was declared absolutely to be [due] by each peer
+    // then divide the rest equally among all parties who have not declared any [due]
+    if (party.name.trim() !== '' || party.paid.trim() !== '') {
+      // only perform this estimation it for peers with names or paid values (that denote they exist)
+      if (absoluteDue && party.due.trim() === '') {
+        let whatIsDecided = parties.reduce((acc, p) => {
+          if (isNormalNumber(p.due)) {
+            return acc + parseFloat(p.due)
+          }
+
+          let percent = getPercent(p.due)
+          if (percent) {
+            return acc + percent * absoluteDue
+          }
+
+          return acc + 0
+        }, 0)
+        let whatIsLeftToDecide = absoluteDue - whatIsDecided
+        let nblankParties = parties
+          .filter(p => (p.name.trim() !== '' || p.paid.trim() !== '') && p.due.trim() === '').length
+
+        return whatIsLeftToDecide / nblankParties
+      }
+    }
+  }
+
+  function partyDue(party, parties, absoluteDue) {
+     // if nothing (or something invalid) was written this will be null
+    let specifiedValue = partyDueSpecified(party, absoluteDue)
+    if (specifiedValue) {
+        console.log(party.name, 'specified', specifiedValue)
+        return specifiedValue
+    }
+
+    // blank: estimate due
+    let estimatedValue = partyDueEstimated(party, parties, absoluteDue)
+    if (estimatedValue) {
+        console.log(party.name, 'estimated', estimatedValue)
+        return estimatedValue
+    }
+
+    // otherwise nothing
+    console.log(party.name, 'nothing')
+    return
+  }
+
+  function balanceColor(balance) {
     if (balance > 0) return 'green'
     else if (balance < 0) return 'red'
     else return ''
-  }
-
-  function isNormalNumber(text) {
-    return text.trim().match(/^\d+(.\d+)?$/)
-  }
-
-  function getPercent(text) {
-    let perc = text.match(/^(\d+(.\d)?)%$/)
-    if (perc) {
-      return parseFloat(perc[1]) * 0.01
-    }
-    return null
-  }
-
-  function parseFloatOrNaN(text) {
-    let num = parseFloat(text)
-    return isNaN(num) ? 0 : num
-  }
-
-  function toFixedIfNeeded(float) {
-    if (
-      parseInt(float * 100)
-        .toString()
-        .slice(-2) === '00'
-    )
-      return float.toFixed(0)
-    return float.toFixed(2)
   }
 </script>
 
@@ -188,13 +184,15 @@
           <input bind:value={p.name} />
         </td>
         <td class="editable">
-          <span class="preview">{infoPartyDue(p, parties)}</span>
+          <span class="preview">{toFixedIfNeeded(partyDue(p, parties, absoluteDue))}</span>
           <input value={p.due} on:input={setParty(p, 'due')} />
         </td>
         <td class="editable">
-          <span class="preview" style="color: {infoPartyBalanceColor(p)}">
-            {toFixedIfNeeded(p.paid - p.due)}
+          {#if isNormalNumber(p.paid)}
+          <span class="preview" style="color: {balanceColor(parseFloatOrNaN(p.paid) - partyDue(p, parties, absoluteDue))}">
+            {toFixedIfNeeded(Math.abs(parseFloatOrNaN(p.paid) - partyDue(p, parties, absoluteDue)))}
           </span>
+    {/if}
           <input value={p.paid} on:input={setParty(p, 'paid')} />
         </td>
       </tr>
@@ -213,7 +211,7 @@
         <label>
           {#if remaining > 0}remaining{:else}outstanding{/if}
           :
-          <input value={toFixedIfNeeded(Math.abs(remaining))} />
+          <input value={toFixedIfNeeded(Math.abs(remaining))} style="color: {balanceColor(-remaining)}" />
         </label>
       </td>
     </tr>
