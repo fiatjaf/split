@@ -20,6 +20,15 @@ export function saveData(parties, absoluteDue) {
   localStorage.setItem('state', JSON.stringify({parties, absoluteDue}))
 }
 
+export function returnToDefaults() {
+  localStorage.removeItem('state')
+  return initializeData()
+}
+
+export function getBlankData() {
+  return [[], null]
+}
+
 export function isNormalNumber(text) {
   return text.trim().match(/^\d+(.\d+)?$/)
 }

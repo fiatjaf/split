@@ -1,6 +1,15 @@
 <script>
-  import {afterUpdate} from 'svelte'
-  import {saveData, initializeData, isNormalNumber, getPercent, parseFloatOrNaN, toFixedIfNeeded} from './helpers'
+  import {afterUpdate, onMount} from 'svelte'
+  import {
+    saveData,
+    initializeData,
+    returnToDefaults,
+    getBlankData,
+    isNormalNumber,
+    getPercent,
+    parseFloatOrNaN,
+    toFixedIfNeeded
+  } from './helpers'
 
   var [parties, absoluteDue] = initializeData()
 
@@ -28,6 +37,20 @@
     saveData(parties, absoluteDue)
   })
 
+  function clearAll(e) {
+    e.preventDefault()
+    let [p, d] = getBlankData()
+    parties = p
+    absoluteDue = d
+  }
+
+  function defaultAll(e) {
+    e.preventDefault()
+    let [p, d] = returnToDefaults()
+    parties = p
+    absoluteDue = d
+  }
+
   function setParty(party, prop) {
     return e => {
       party[prop] = e.target.value
@@ -54,7 +77,7 @@
     return calcDue(absoluteDue, parties) - paid
   }
 
-  function partyDueSpecified (party, absoluteDue) {
+  function partyDueSpecified(party, absoluteDue) {
     // absolute value, then it's it
     if (isNormalNumber(party.due)) return parseFloat(party.due)
 
@@ -65,7 +88,7 @@
     }
   }
 
-  function partyDueEstimated (party, parties, absoluteDue) {
+  function partyDueEstimated(party, parties, absoluteDue) {
     // take the absolute quantity, subtract what was declared absolutely to be [due] by each peer
     // then divide the rest equally among all parties who have not declared any [due]
     if (party.name.trim() !== '' || party.paid.trim() !== '') {
@@ -84,8 +107,11 @@
           return acc + 0
         }, 0)
         let whatIsLeftToDecide = absoluteDue - whatIsDecided
-        let nblankParties = parties
-          .filter(p => (p.name.trim() !== '' || p.paid.trim() !== '') && p.due.trim() === '').length
+        let nblankParties = parties.filter(
+          p =>
+            (p.name.trim() !== '' || p.paid.trim() !== '') &&
+            p.due.trim() === ''
+        ).length
 
         return whatIsLeftToDecide / nblankParties
       }
@@ -93,22 +119,19 @@
   }
 
   function partyDue(party, parties, absoluteDue) {
-     // if nothing (or something invalid) was written this will be null
+    // if nothing (or something invalid) was written this will be null
     let specifiedValue = partyDueSpecified(party, absoluteDue)
     if (specifiedValue) {
-        console.log(party.name, 'specified', specifiedValue)
-        return specifiedValue
+      return specifiedValue
     }
 
     // blank: estimate due
     let estimatedValue = partyDueEstimated(party, parties, absoluteDue)
     if (estimatedValue) {
-        console.log(party.name, 'estimated', estimatedValue)
-        return estimatedValue
+      return estimatedValue
     }
 
     // otherwise nothing
-    console.log(party.name, 'nothing')
     return
   }
 
@@ -184,15 +207,19 @@
           <input bind:value={p.name} />
         </td>
         <td class="editable">
-          <span class="preview">{toFixedIfNeeded(partyDue(p, parties, absoluteDue))}</span>
+          <span class="preview">
+            {toFixedIfNeeded(partyDue(p, parties, absoluteDue))}
+          </span>
           <input value={p.due} on:input={setParty(p, 'due')} />
         </td>
         <td class="editable">
           {#if isNormalNumber(p.paid)}
-          <span class="preview" style="color: {balanceColor(parseFloatOrNaN(p.paid) - partyDue(p, parties, absoluteDue))}">
-            {toFixedIfNeeded(Math.abs(parseFloatOrNaN(p.paid) - partyDue(p, parties, absoluteDue)))}
-          </span>
-    {/if}
+            <span
+              class="preview"
+              style="color: {balanceColor(parseFloatOrNaN(p.paid) - partyDue(p, parties, absoluteDue))}">
+              {toFixedIfNeeded(Math.abs(parseFloatOrNaN(p.paid) - partyDue(p, parties, absoluteDue)))}
+            </span>
+          {/if}
           <input value={p.paid} on:input={setParty(p, 'paid')} />
         </td>
       </tr>
@@ -200,7 +227,14 @@
   </tbody>
   <tfoot>
     <tr>
-      <th />
+      <th>
+        <div>
+          <button on:click={clearAll}>clear all</button>
+        </div>
+        <div>
+          <button on:click={defaultAll}>return to defaults</button>
+        </div>
+      </th>
       <td class="editable">
         <label>
           bill total:
@@ -211,7 +245,9 @@
         <label>
           {#if remaining > 0}remaining{:else}outstanding{/if}
           :
-          <input value={toFixedIfNeeded(Math.abs(remaining))} style="color: {balanceColor(-remaining)}" />
+          <input
+            value={toFixedIfNeeded(Math.abs(remaining))}
+            style="color: {balanceColor(-remaining)}" />
         </label>
       </td>
     </tr>
