@@ -11,5 +11,5 @@
 <div id="editor">
   <Editor />
 
-  <h1>Split your bar bills easily with custom amounts and custom percentages</h1>
+  <h3>Split your bar bills with friends easily with custom amounts and custom percentages</h3>
 </div>

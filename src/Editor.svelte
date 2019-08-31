@@ -85,6 +85,13 @@
     return ''
   }
 
+  function infoPartyBalanceColor (party) {
+    let balance = party.paid - party.due
+    if (balance > 0) return 'green'
+    else if (balance < 0) return 'red'
+    else return ''
+  }
+
   function isNormalNumber (text) { return text.trim().match(/^\d+(.\d+)?$/) }
 
   function getPercent (text) {
@@ -173,6 +180,7 @@
           <input value={p.due} on:input={setParty(p, 'due')} />
         </td>
         <td class="editable">
+          <span class="preview" style="color: {infoPartyBalanceColor(p)}">{toFixedIfNeeded(p.paid - p.due)}</span>
           <input value={p.paid} on:input={setParty(p, 'paid')} />
         </td>
       </tr>
