@@ -213,7 +213,7 @@
           <input value={p.due} on:input={setParty(p, 'due')} />
         </td>
         <td class="editable">
-          {#if isNormalNumber(p.paid)}
+          {#if p.name.trim() !== '' || p.paid.trim() !== ''}
             <span
               class="preview"
               style="color: {balanceColor(parseFloatOrNaN(p.paid) - partyDue(p, parties, absoluteDue))}">
