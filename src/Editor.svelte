@@ -1,17 +1,15 @@
 <script>
-  import { afterUpdate } from 'svelte'
+  import {afterUpdate} from 'svelte'
+  import {saveData, initializeData} from './helpers'
 
-  let absoluteDue = null;
-  var parties = [
-    { id: Math.random(), name: "J", due: "23", paid: "15" },
-    { id: Math.random(), name: "P", due: "10", paid: "12" }
-  ];
-  let due = calcDue(absoluteDue, parties);
-  let paid = calcPaid(parties);
+  var [parties, absoluteDue] = initializeData()
+
+  let due = calcDue(absoluteDue, parties)
+  let paid = calcPaid(parties)
   let remaining = calcRemaining(absoluteDue, paid, parties)
 
-  $: due = calcDue(absoluteDue, parties);
-  $: paid = calcPaid(parties);
+  $: due = calcDue(absoluteDue, parties)
+  $: paid = calcPaid(parties)
   $: remaining = calcRemaining(absoluteDue, paid, parties)
 
   afterUpdate(() => {
@@ -24,19 +22,22 @@
           p.due.trim().length > 0 ||
           p.paid.trim().length > 0
       )
-      .concat({ id: Math.random(), name: "", due: "", paid: "" });
+      .concat({id: Math.random(), name: '', due: '', paid: ''})
+
+    // save data to localStorage
+    saveData(parties, absoluteDue)
   })
 
   function setParty(party, prop) {
     return e => {
-      party[prop] = e.target.value;
-      parties = parties;
-    };
+      party[prop] = e.target.value
+      parties = parties
+    }
   }
 
   function setAbsoluteDue(e) {
     let parsed = parseFloat(e.target.value)
-    absoluteDue = isNaN(parsed) ? null : parsed;
+    absoluteDue = isNaN(parsed) ? null : parsed
   }
 
   function calcPaid(parties) {
@@ -44,21 +45,23 @@
   }
 
   function calcDue(absoluteDue, parties) {
-    return absoluteDue || parties.reduce((acc, p) => acc + parseFloatOrNaN(p.due), 0)
+    return (
+      absoluteDue || parties.reduce((acc, p) => acc + parseFloatOrNaN(p.due), 0)
+    )
   }
 
-  function calcRemaining (absoluteDue, paid, parties) {
+  function calcRemaining(absoluteDue, paid, parties) {
     return calcDue(absoluteDue, parties) - paid
   }
 
-  function infoPartyDue (party, parties) {
+  function infoPartyDue(party, parties) {
     // absolute value, then it's it
     if (isNormalNumber(party.due)) return parseFloat(party.due)
 
     // percent value: calculate with absoluteDue
     let percent = getPercent(party.due)
     if (absoluteDue && percent) {
-      return toFixedIfNeeded(percent * absoluteDue);
+      return toFixedIfNeeded(percent * absoluteDue)
     }
 
     // blank: estimate what is left divided equally
@@ -70,7 +73,7 @@
 
         let percent = getPercent(p.due)
         if (percent) {
-          return acc + (percent * absoluteDue)
+          return acc + percent * absoluteDue
         }
 
         return acc + 0
@@ -85,16 +88,18 @@
     return ''
   }
 
-  function infoPartyBalanceColor (party) {
+  function infoPartyBalanceColor(party) {
     let balance = party.paid - party.due
     if (balance > 0) return 'green'
     else if (balance < 0) return 'red'
     else return ''
   }
 
-  function isNormalNumber (text) { return text.trim().match(/^\d+(.\d+)?$/) }
+  function isNormalNumber(text) {
+    return text.trim().match(/^\d+(.\d+)?$/)
+  }
 
-  function getPercent (text) {
+  function getPercent(text) {
     let perc = text.match(/^(\d+(.\d)?)%$/)
     if (perc) {
       return parseFloat(perc[1]) * 0.01
@@ -102,13 +107,18 @@
     return null
   }
 
-  function parseFloatOrNaN (text) {
+  function parseFloatOrNaN(text) {
     let num = parseFloat(text)
     return isNaN(num) ? 0 : num
   }
 
-  function toFixedIfNeeded (float) {
-    if (parseInt(float * 100).toString().slice(-2) === '00') return float.toFixed(0)
+  function toFixedIfNeeded(float) {
+    if (
+      parseInt(float * 100)
+        .toString()
+        .slice(-2) === '00'
+    )
+      return float.toFixed(0)
     return float.toFixed(2)
   }
 </script>
@@ -141,7 +151,9 @@
     width: 200px;
     float: right;
   }
-  tbody td.editable { position: relative; }
+  tbody td.editable {
+    position: relative;
+  }
   tbody td.editable .preview {
     position: absolute;
     left: 10px;
@@ -180,7 +192,9 @@
           <input value={p.due} on:input={setParty(p, 'due')} />
         </td>
         <td class="editable">
-          <span class="preview" style="color: {infoPartyBalanceColor(p)}">{toFixedIfNeeded(p.paid - p.due)}</span>
+          <span class="preview" style="color: {infoPartyBalanceColor(p)}">
+            {toFixedIfNeeded(p.paid - p.due)}
+          </span>
           <input value={p.paid} on:input={setParty(p, 'paid')} />
         </td>
       </tr>
@@ -197,7 +211,8 @@
       </td>
       <td class="editable">
         <label>
-          {#if remaining > 0}remaining{:else}outstanding{/if}:
+          {#if remaining > 0}remaining{:else}outstanding{/if}
+          :
           <input value={toFixedIfNeeded(Math.abs(remaining))} />
         </label>
       </td>
