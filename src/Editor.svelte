@@ -164,6 +164,7 @@
   }
   input {
     border: 0;
+    background: transparent;
   }
   tbody input {
     padding: 16px 10px;
@@ -246,6 +247,7 @@
           {#if remaining > 0}remaining{:else}outstanding{/if}
           :
           <input
+            disabled
             value={toFixedIfNeeded(Math.abs(remaining))}
             style="color: {balanceColor(-remaining)}" />
         </label>
