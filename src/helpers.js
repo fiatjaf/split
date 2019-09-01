@@ -2,8 +2,8 @@
 
 const defaultParties = [
   {id: Math.random(), name: 'Friedrich', due: '50%', paid: '25'},
-  {id: Math.random(), name: 'Milton', due: '', paid: '21'},
-  {id: Math.random(), name: 'Bettina', due: '12', paid: '12'}
+  {id: Math.random(), name: 'Milton', due: '', paid: '10'},
+  {id: Math.random(), name: 'Bettina', due: '12', paid: '15'}
 ]
 const defaultAbsoluteDue = 49.5
 
