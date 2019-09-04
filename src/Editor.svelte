@@ -11,15 +11,14 @@
     toFixedIfNeeded
   } from './helpers'
 
-  var [parties, absoluteDue] = initializeData()
+  let [parties, absoluteDue] = initializeData()
 
-  let due = calcDue(absoluteDue, parties)
-  let paid = calcPaid(parties)
-  let remaining = calcRemaining(absoluteDue, paid, parties)
+  var due, paid, remaining, assigned
 
   $: due = calcDue(absoluteDue, parties)
   $: paid = calcPaid(parties)
   $: remaining = calcRemaining(absoluteDue, paid, parties)
+  $: assigned = parties.reduce((acc, p) => acc + (partyDueSpecified(p, absoluteDue) || 0), 0)
 
   afterUpdate(() => {
     // remove all blank parties
@@ -197,7 +196,7 @@
   <thead>
     <tr>
       <th>person</th>
-      <th>should pay</th>
+      <th>due ({toFixedIfNeeded(assigned)})</th>
       <th>paid ({toFixedIfNeeded(paid)})</th>
     </tr>
   </thead>
